@@ -1,42 +1,44 @@
-import { commands } from "../../config.js";
+import CommandNotExistsError from "../Error/CommandNotExistsError.js";
+import MissingArgumentsError from "../Error/MissingArgumentsError.js";
+import TooManyArgumentsError from "../Error/TooManyArgumentsError.js";
 import validatePath from "../Validation/validatePath.js";
+import getCommandObject from "./getCommandObject.js";
 
 /**
  * parse the given command string and operate it
  * @param {*} string the command string
- * @returns On success true and on fail false
  */
-const parse = (string) => {
-  const components = string.split(/(\s+)/).filter(e => e.trim().length > 0);
-  let command = components[0];
-  command = commands.find((obj) => obj.name == command);
-  if (!command) {
-    throw new Error(`Command ${components[0]} does not exists..`);
-  }
+const parse = (query) => {
+  const { commandObject, command, commandArguments } = getCommandObject(query);
 
-  if (components.length - 1 < command.expectedParams) {
-    throw new Error(`Not enough params to the following command: ${command.name}`);
-  }
-
-  if (components.length - 1 > command.expectedParams) {
-    throw new Error(`Too much params to the following command: ${command.name}`);
-  }
-
-  const [, ...params] = components;
-
-  // Validate the path string
-  if (Object.hasOwn(command, "pathValidation")) {
-    for (let index = 0; index < command.pathValidation; index++) {
-      if (!validatePath(params[index])) {
-        console.log("Given path is not valid");
-        return false;
-      }
+  try {
+    if (!commandObject) {
+      throw new CommandNotExistsError(command);
     }
-  }
 
-  // Operate the appropriate command
-  command.operate(params);
-  return true;
+    if (commandArguments.length < commandObject.expectedArguments) {
+      throw new MissingArgumentsError(
+        commandObject.name,
+        commandObject.expectedArguments,
+        commandArguments.length
+      );
+    }
+
+    if (commandArguments.length > commandObject.expectedArguments) {
+      throw new TooManyArgumentsError(
+        commandObject.name,
+        commandObject.expectedArguments,
+        commandArguments.length
+      );
+    }
+
+    validatePath(commandObject);
+
+    // Operate the appropriate command
+    commandObject.operate(commandArguments);
+  } catch (error) {
+    console.error(error.message);
+  }
 };
 
 export default parse;

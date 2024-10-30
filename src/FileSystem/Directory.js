@@ -1,8 +1,10 @@
+import DirectoryAlreadyExistsError from "../Error/DirectoryAlreadyExistsError.js";
+import PathNotExistsError from "../Error/PathNotExistsError.js";
+
 /**
  * Directory class - A sort of a file system simulation but with only directorys
  */
 class Directory {
-  
   /**
    * Directory constructor - construct a new Directory object including the entries (which hold Directory objects)
    * @param {*} name the name of the directory
@@ -22,20 +24,22 @@ class Directory {
     const directorys = path.split("/");
     const newDirectoryName = directorys.pop();
 
-    const directoryObject = this.getDirectory(directorys.join("/"));
-    if (directoryObject.directory) {
-      if (directoryObject.directory.entries[newDirectoryName]) {
-        console.log(`Cannot create a new directory ${path} - already exist`);
+    try {
+      const directoryObject = this.getDirectory(directorys.join("/"));
+      if (directoryObject.directory) {
+        if (directoryObject.directory.entries[newDirectoryName]) {
+          throw new DirectoryAlreadyExistsError(path);
+        } else {
+          directoryObject.directory.entries[newDirectoryName] = new Directory(
+            newDirectoryName,
+            directorys.length + 1
+          );
+        }
       } else {
-        directoryObject.directory.entries[newDirectoryName] = new Directory(
-          newDirectoryName,
-          directorys.length + 1
-        );
+        throw new PathNotExistsError("create", path, directoryObject.pathNotExists);
       }
-    } else {
-      console.log(
-        `Cannot create a new directory ${path} - ${directoryObject.pathNotExists} does not exist`
-      );
+    } catch (error) {
+      throw error;
     }
   }
 
@@ -57,7 +61,10 @@ class Directory {
       return { directory: null, parent: null, pathNotExists: directoryName };
     }
 
-    return this.entries[directoryName].getDirectory(directorys.slice(1).join("/"), this);
+    return this.entries[directoryName].getDirectory(
+      directorys.slice(1).join("/"),
+      this
+    );
   }
 
   /**
@@ -66,16 +73,16 @@ class Directory {
    * @returns true on success and false on fail
    */
   deleteDirectory(path) {
-    const directoryObject = this.getDirectory(path);
-    if (!directoryObject.directory) {
-      console.log(
-        `Cannot delete ${path} - ${directoryObject.pathNotExists} does not exist`
-      );
-      return false;
-    }
+    try {
+      const directoryObject = this.getDirectory(path);
+      if (!directoryObject.directory) {
+        throw new PathNotExistsError("delete", path, directoryObject.pathNotExists);
+      }
 
-    delete directoryObject.parent.entries[directoryObject.directory.name];
-    return true;
+      delete directoryObject.parent.entries[directoryObject.directory.name];
+    } catch (error) {
+      throw error;
+    }
   }
 
   /**
@@ -85,37 +92,35 @@ class Directory {
    * @returns true on success and false on fail
    */
   moveDirectory(path, movePath) {
-    const directoryObject = this.getDirectory(path);
-    const moveIntoDirectoryObject = this.getDirectory(movePath);
-    if (!directoryObject.directory) {
-      console.log(
-        `Cannot move ${path} - ${directoryObject.pathNotExists} does not exist`
-      );
-      return false;
-    }
+    try {
+      const directoryObject = this.getDirectory(path);
+      const moveIntoDirectoryObject = this.getDirectory(movePath);
+      if (!directoryObject.directory) {
+        throw new PathNotExistsError("move", path, directoryObject.pathNotExists);
+      }
 
-    if (!moveIntoDirectoryObject.directory) {
-      console.log(
-        `Cannot move ${path} - ${moveIntoDirectoryObject.pathNotExists} does not exist`
-      );
-      return false;
-    }
+      if (!moveIntoDirectoryObject.directory) {
+        throw new PathNotExistsError("move", path, directoryObject.pathNotExists);
+      }
 
-    moveIntoDirectoryObject.directory.entries[directoryObject.directory.name] =
-      directoryObject.directory;
-    delete directoryObject.parent.entries[directoryObject.directory.name];
-    return true;
+      moveIntoDirectoryObject.directory.entries[
+        directoryObject.directory.name
+      ] = directoryObject.directory;
+      delete directoryObject.parent.entries[directoryObject.directory.name];
+    } catch (error) {
+      throw error;
+    }
   }
 
   /**
    * listDirectories - list the directories starting from the Root like a real file system
-   * @param {*} indentation the spacing in each line
+   * @param {*} spacing the spacing in each line
    */
-  listDirectories(indentation = "") {
-    if (this.depth != 0) console.log(`${indentation}${this.name}`);
+  listDirectories(spacing = "") {
+    if (this.depth != 0) console.log(`${spacing}${this.name}`);
 
     for (const entryName in this.entries) {
-      this.entries[entryName].listDirectories(indentation + "  ");
+      this.entries[entryName].listDirectories(this.depth == 0 ? "" : spacing + " ");
     }
   }
 }

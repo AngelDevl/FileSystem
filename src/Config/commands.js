@@ -1,12 +1,9 @@
-import Directory from "./src/FileSystem/Directory.js";
-
-// The Root folder
-export const root = new Directory("Root", 0);
+import { root } from "./config.js";
 
 export const commands = [
   {
     name: "CREATE",
-    expectedParams: 1,
+    expectedArguments: 1,
     pathValidation: 1,
     operate: function (params) {
       root.addDirectory(params[0]);
@@ -14,7 +11,7 @@ export const commands = [
   },
   {
     name: "MOVE",
-    expectedParams: 2,
+    expectedArguments: 2,
     pathValidation: 2,
     operate: function (params) {
       root.moveDirectory(params[0], params[1]);
@@ -22,14 +19,14 @@ export const commands = [
   },
   {
     name: "LIST",
-    expectedParams: 0,
+    expectedArguments: 0,
     operate: function (params) {
       root.listDirectories();
     },
   },
   {
     name: "DELETE",
-    expectedParams: 1,
+    expectedArguments: 1,
     pathValidation: 1,
     operate: function (params) {
       root.deleteDirectory(params[0]);
